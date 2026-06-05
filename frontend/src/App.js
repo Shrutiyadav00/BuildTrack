@@ -15,7 +15,17 @@ import Finance from './pages/finance/Finance';
 import Documents from './pages/documents/Documents';
 import Team from './pages/team/Team';
 import WorkerDashboard from './pages/worker/WorkerDashboard';
-import Subscription from './pages/subscription/Subscription';
+import Subscription    from './pages/subscription/Subscription';
+import ClientLayout    from './components/client/ClientLayout';
+import ClientPortal    from './pages/client/ClientPortal';
+import ClientActivity  from './pages/client/ClientActivity';
+import ClientPayments  from './pages/client/ClientPayments';
+import ClientBuilderProfile from './pages/client/ClientBuilderProfile';
+import Vendors          from './pages/vendors/Vendors';
+import VendorDetail     from './pages/vendors/VendorDetail';
+import PurchaseOrders   from './pages/vendors/PurchaseOrders';
+import PurchaseOrderForm from './pages/vendors/PurchaseOrderForm';
+import Reports          from './pages/reports/Reports';
 
 /* Redirects unauthenticated users to login */
 const PrivateRoute = ({ children }) => {
@@ -70,13 +80,17 @@ export default function App() {
             <WorkerRoute><WorkerDashboard /></WorkerRoute>
           } />
 
-          {/* Client portal — role: client only (placeholder until build-6) */}
+          {/* Client portal — role: client only */}
           <Route path="/client/*" element={
             <ClientRoute>
-              <div style={{ padding: 40, textAlign: 'center' }}>
-                <h2>Client Portal</h2>
-                <p>Coming soon — build-6</p>
-              </div>
+              <ClientLayout>
+                <Routes>
+                  <Route path="/"         element={<ClientPortal />} />
+                  <Route path="/activity" element={<ClientActivity />} />
+                  <Route path="/payments" element={<ClientPayments />} />
+                  <Route path="/builder"  element={<ClientBuilderProfile />} />
+                </Routes>
+              </ClientLayout>
             </ClientRoute>
           } />
 
@@ -93,9 +107,14 @@ export default function App() {
                   <Route path="/documents"    element={<Documents />} />
 
                   {/* Admin-only routes */}
-                  <Route path="/finance"       element={<AdminOnlyRoute><Finance /></AdminOnlyRoute>} />
-                  <Route path="/team"          element={<AdminOnlyRoute><Team /></AdminOnlyRoute>} />
-                  <Route path="/subscription"  element={<AdminOnlyRoute><Subscription /></AdminOnlyRoute>} />
+                  <Route path="/finance"               element={<AdminOnlyRoute><Finance /></AdminOnlyRoute>} />
+                  <Route path="/team"                  element={<AdminOnlyRoute><Team /></AdminOnlyRoute>} />
+                  <Route path="/subscription"          element={<AdminOnlyRoute><Subscription /></AdminOnlyRoute>} />
+                  <Route path="/vendors"               element={<AdminOnlyRoute><Vendors /></AdminOnlyRoute>} />
+                  <Route path="/vendors/:id"           element={<AdminOnlyRoute><VendorDetail /></AdminOnlyRoute>} />
+                  <Route path="/purchase-orders"       element={<AdminOnlyRoute><PurchaseOrders /></AdminOnlyRoute>} />
+                  <Route path="/purchase-orders/new"   element={<AdminOnlyRoute><PurchaseOrderForm /></AdminOnlyRoute>} />
+                  <Route path="/reports"               element={<AdminOnlyRoute><Reports /></AdminOnlyRoute>} />
                 </Routes>
               </Layout>
             </AdminRoute>

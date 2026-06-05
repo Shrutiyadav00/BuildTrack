@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, Activity, Users2, TrendingUp, ArrowRight, Plus } from 'lucide-react';
+import { Building2, Activity, Users2, TrendingUp, ArrowRight, Plus, FileText, Bell, AlertTriangle } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 import { useSettings } from '../../context/SettingsContext';
+import BudgetAlert from '../../components/dashboard/BudgetAlert';
 
 const STATUS_BADGE = { active:'badge-green', planning:'badge-yellow', on_hold:'badge-red', completed:'badge-blue', cancelled:'badge-gray' };
 
@@ -56,6 +57,48 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+
+      {/* Budget alerts */}
+      <BudgetAlert alerts={data?.budgetAlerts} />
+
+      {/* Quick action cards — pending payments + unpaid POs */}
+      {(data?.pendingPayments > 0 || data?.poSummary?.count > 0) && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginBottom: 20 }}>
+          {data?.pendingPayments > 0 && (
+            <Link to="/finance" style={{ textDecoration: 'none' }}>
+              <div style={{ background: 'var(--warning-bg)', borderRadius: 'var(--r-lg)', padding: '14px 18px', border: '1px solid var(--warning)33', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Bell size={20} color="var(--warning)" />
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--warning)' }}>{data.pendingPayments}</div>
+                  <div style={{ fontSize: 12, color: 'var(--t2)' }}>Payment{data.pendingPayments !== 1 ? 's' : ''} Requested</div>
+                </div>
+              </div>
+            </Link>
+          )}
+          {data?.poSummary?.count > 0 && (
+            <Link to="/purchase-orders" style={{ textDecoration: 'none' }}>
+              <div style={{ background: 'var(--info-bg, #e8f4fd)', borderRadius: 'var(--r-lg)', padding: '14px 18px', border: '1px solid var(--info)33', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <FileText size={20} color="var(--info, #2196f3)" />
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--info, #2196f3)' }}>{data.poSummary.count}</div>
+                  <div style={{ fontSize: 12, color: 'var(--t2)' }}>Unpaid PO{data.poSummary.count !== 1 ? 's' : ''}</div>
+                </div>
+              </div>
+            </Link>
+          )}
+          {data?.subscriptionStatus?.daysRemaining <= 7 && data?.subscriptionStatus?.daysRemaining >= 0 && (
+            <Link to="/subscription" style={{ textDecoration: 'none' }}>
+              <div style={{ background: 'var(--danger-bg, #fff0f0)', borderRadius: 'var(--r-lg)', padding: '14px 18px', border: '1px solid var(--danger)33', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <AlertTriangle size={20} color="var(--danger)" />
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--danger)' }}>{data.subscriptionStatus.daysRemaining}d</div>
+                  <div style={{ fontSize: 12, color: 'var(--t2)' }}>Subscription expiring</div>
+                </div>
+              </div>
+            </Link>
+          )}
+        </div>
+      )}
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:24 }}>
         <div className="card card-pad" style={{ background:'linear-gradient(135deg,#5c6bc0,#7986cb)', border:'none', color:'#fff' }}>

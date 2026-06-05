@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import SubscriptionBanner from '../subscription/SubscriptionBanner';
+import NotificationBell from '../notifications/NotificationBell';
 import {
   LayoutDashboard, FolderKanban, HardHat,
   CalendarCheck, Wallet, FolderOpen, Users2, LogOut,
@@ -134,6 +135,7 @@ export default function Layout({ children }) {
             <div className="user-name">{user?.name}</div>
             <div className="user-role">{user?.role}</div>
           </div>
+          <NotificationBell />
           <button className="btn-logout" title={t('logout')}
             onClick={() => { logout(); navigate('/login'); }}>
             <LogOut size={14} />
