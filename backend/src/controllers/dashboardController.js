@@ -3,15 +3,19 @@ const Task = require('../models/Task');
 const Worker = require('../models/Worker');
 const Attendance = require('../models/Attendance');
 const Transaction = require('../models/Transaction');
+const { getOrgId } = require('../middleware/auth');
 
 exports.getOwnerDashboard = async (req, res) => {
+  const orgId = getOrgId(req.user);
   let projects;
-  
-  // Filter by role: Owners see owned projects, Engineers/Supervisors see projects they're assigned to
-  if (req.user.role === 'owner') {
-    projects = await Project.find({ owner: req.user._id });
+
+  if (['super_admin', 'admin', 'owner'].includes(req.user.role)) {
+    // Admin group: all org projects
+    projects = await Project.find({ owner: orgId });
   } else if (['engineer', 'supervisor', 'manager'].includes(req.user.role)) {
+    // Engineer group: only their assigned projects (still org-scoped)
     projects = await Project.find({
+      owner: orgId,
       $or: [
         { leadEngineer: req.user._id },
         { team: req.user._id }
@@ -20,11 +24,24 @@ exports.getOwnerDashboard = async (req, res) => {
   } else {
     projects = [];
   }
-  
-  const workers = await Worker.countDocuments({ owner: req.user._id, isActive: true });
-  const totalBudget = projects.reduce((s, p) => s + (p.budget.total || 0), 0);
-  const avgCompletion = projects.length ? Math.round(projects.reduce((s, p) => s + p.completion, 0) / projects.length) : 0;
-  res.json({ success: true, data: { totalProjects: projects.length, activeProjects: projects.filter(p => p.status === 'active').length, totalBudget, avgCompletion, totalWorkers: workers, recentProjects: projects.slice(-5) } });
+
+  const workers        = await Worker.countDocuments({ owner: orgId, isActive: true });
+  const totalBudget    = projects.reduce((s, p) => s + (p.budget.total || 0), 0);
+  const avgCompletion  = projects.length
+    ? Math.round(projects.reduce((s, p) => s + p.completion, 0) / projects.length)
+    : 0;
+
+  res.json({
+    success: true,
+    data: {
+      totalProjects:   projects.length,
+      activeProjects:  projects.filter(p => p.status === 'active').length,
+      totalBudget,
+      avgCompletion,
+      totalWorkers:    workers,
+      recentProjects:  projects.slice(-5),
+    }
+  });
 };
 
 exports.getProjectDashboard = async (req, res) => {

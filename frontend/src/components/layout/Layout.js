@@ -8,14 +8,16 @@ import {
   Settings, X, Menu, Globe, ChevronDown,
 } from 'lucide-react';
 
+// roles: 'all' means every non-client/non-worker logged-in user can see it
+// roles: array means only those specific roles
 const NAV_ITEMS = [
-  { to:'/',           icon:LayoutDashboard, key:'dashboard'  },
-  { to:'/projects',   icon:FolderKanban,    key:'projects'   },
-  { to:'/workers',    icon:HardHat,         key:'workers'    },
-  { to:'/attendance', icon:CalendarCheck,   key:'attendance' },
-  { to:'/finance',    icon:Wallet,          key:'finance'    },
-  { to:'/documents',  icon:FolderOpen,      key:'documents'  },
-  { to:'/team',       icon:Users2,          key:'team'       },
+  { to:'/',           icon:LayoutDashboard, key:'dashboard',  roles:'all' },
+  { to:'/projects',   icon:FolderKanban,    key:'projects',   roles:'all' },
+  { to:'/workers',    icon:HardHat,         key:'workers',    roles:['super_admin','admin','owner','engineer','supervisor','manager'] },
+  { to:'/attendance', icon:CalendarCheck,   key:'attendance', roles:['super_admin','admin','owner','engineer','supervisor','manager'] },
+  { to:'/finance',    icon:Wallet,          key:'finance',    roles:['super_admin','admin','owner'] },
+  { to:'/documents',  icon:FolderOpen,      key:'documents',  roles:'all' },
+  { to:'/team',       icon:Users2,          key:'team',       roles:['super_admin','admin','owner'] },
 ];
 
 export default function Layout({ children }) {
@@ -75,26 +77,40 @@ export default function Layout({ children }) {
         <div className="sidebar-section">
           <div className="sidebar-section-label">{t('mainMenu')}</div>
           <nav>
-            {NAV_ITEMS.slice(0, 4).map(({ to, icon: Icon, key }) => (
-              <NavLink key={to} to={to} end={to==='/'} onClick={handleNav}
-                className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-                <span className="nav-icon"><Icon size={17} /></span>
-                {t(key)}
-              </NavLink>
-            ))}
+            {NAV_ITEMS
+              .filter(item =>
+                item.roles === 'all' ||
+                (user && item.roles.includes(user.role))
+              )
+              .slice(0, 4)
+              .map(({ to, icon: Icon, key }) => (
+                <NavLink key={to} to={to} end={to==='/'} onClick={handleNav}
+                  className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+                  <span className="nav-icon"><Icon size={17} /></span>
+                  {t(key)}
+                </NavLink>
+              ))
+            }
           </nav>
         </div>
 
         <div className="sidebar-section">
           <div className="sidebar-section-label">{t('management')}</div>
           <nav>
-            {NAV_ITEMS.slice(4).map(({ to, icon: Icon, key }) => (
-              <NavLink key={to} to={to} onClick={handleNav}
-                className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-                <span className="nav-icon"><Icon size={17} /></span>
-                {t(key)}
-              </NavLink>
-            ))}
+            {NAV_ITEMS
+              .filter(item =>
+                item.roles === 'all' ||
+                (user && item.roles.includes(user.role))
+              )
+              .slice(4)
+              .map(({ to, icon: Icon, key }) => (
+                <NavLink key={to} to={to} onClick={handleNav}
+                  className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+                  <span className="nav-icon"><Icon size={17} /></span>
+                  {t(key)}
+                </NavLink>
+              ))
+            }
           </nav>
         </div>
 
