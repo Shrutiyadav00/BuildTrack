@@ -15,6 +15,23 @@ const UserSchema = new mongoose.Schema({
   avatar:   { type: String },
   workerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Worker' },
   isActive: { type: Boolean, default: true },
+
+  // Org scoping — points to the admin/owner who created this user.
+  // For admin/owner users this equals their own _id (set on register).
+  // For invited engineers/workers/clients this is the admin's _id.
+  organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
+  // For 'client' role only — which project they can access
+  clientProjectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
+
+  // Builder's bank details — shown to clients so they can make payments easily
+  bankDetails: {
+    accountHolderName: { type: String },
+    bankName:          { type: String },
+    accountNumber:     { type: String },
+    ifscCode:          { type: String },
+    upiId:             { type: String },
+  },
 }, { timestamps: true });
 
 UserSchema.pre('save', async function () {

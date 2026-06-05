@@ -22,7 +22,7 @@ const PrivateRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" replace />;
 };
 
-/* Only for worker role — redirects others to main app */
+/* Only for worker role */
 const WorkerRoute = ({ children }) => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
@@ -30,11 +30,28 @@ const WorkerRoute = ({ children }) => {
   return children;
 };
 
-/* Main app route — redirects workers to their dashboard */
+/* Only for client role */
+const ClientRoute = ({ children }) => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'client') return <Navigate to="/" replace />;
+  return children;
+};
+
+/* Main ERP app — blocks workers (→ worker-dashboard) and clients (→ /client) */
 const AdminRoute = ({ children }) => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
   if (user.role === 'worker') return <Navigate to="/worker-dashboard" replace />;
+  if (user.role === 'client') return <Navigate to="/client" replace />;
+  return children;
+};
+
+/* Admin-only pages (finance, vendors, team, subscription) */
+const AdminOnlyRoute = ({ children }) => {
+  const { user, isAdmin } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (!isAdmin()) return <Navigate to="/" replace />;
   return children;
 };
 
@@ -47,24 +64,36 @@ export default function App() {
           <Route path="/login"    element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Worker portal */}
+          {/* Worker portal — role: worker only */}
           <Route path="/worker-dashboard" element={
             <WorkerRoute><WorkerDashboard /></WorkerRoute>
           } />
 
-          {/* Main ERP app */}
+          {/* Client portal — role: client only (placeholder until build-6) */}
+          <Route path="/client/*" element={
+            <ClientRoute>
+              <div style={{ padding: 40, textAlign: 'center' }}>
+                <h2>Client Portal</h2>
+                <p>Coming soon — build-6</p>
+              </div>
+            </ClientRoute>
+          } />
+
+          {/* Main ERP app — admin + engineer roles */}
           <Route path="/*" element={
             <AdminRoute>
               <Layout>
                 <Routes>
-                  <Route path="/"            element={<Dashboard />} />
-                  <Route path="/projects"    element={<Projects />} />
+                  <Route path="/"             element={<Dashboard />} />
+                  <Route path="/projects"     element={<Projects />} />
                   <Route path="/projects/:id" element={<ProjectDetail />} />
-                  <Route path="/workers"     element={<Workers />} />
-                  <Route path="/attendance"  element={<Attendance />} />
-                  <Route path="/finance"     element={<Finance />} />
-                  <Route path="/documents"   element={<Documents />} />
-                  <Route path="/team"        element={<Team />} />
+                  <Route path="/workers"      element={<Workers />} />
+                  <Route path="/attendance"   element={<Attendance />} />
+                  <Route path="/documents"    element={<Documents />} />
+
+                  {/* Admin-only routes */}
+                  <Route path="/finance"  element={<AdminOnlyRoute><Finance /></AdminOnlyRoute>} />
+                  <Route path="/team"     element={<AdminOnlyRoute><Team /></AdminOnlyRoute>} />
                 </Routes>
               </Layout>
             </AdminRoute>
