@@ -22,6 +22,13 @@ axiosInstance.interceptors.response.use(
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    // 402 = subscription expired → redirect to subscription page
+    if (err.response?.status === 402) {
+      // Only redirect if not already on the subscription page
+      if (!window.location.pathname.startsWith('/subscription')) {
+        window.location.href = '/subscription?expired=1';
+      }
+    }
     return Promise.reject(err);
   }
 );

@@ -24,6 +24,7 @@ const T = {
     dashboard:'Dashboard', projects:'Projects', workers:'Workers',
     attendance:'Attendance', finance:'Finance', documents:'Documents',
     team:'Team', settings:'Settings', mainMenu:'Main Menu', management:'Management',
+    subscription:'Subscription',
     /* actions */
     add:'Add', save:'Save', cancel:'Cancel', create:'Create', upload:'Upload',
     remove:'Remove', logout:'Logout', loading:'Loading', back:'Back',
