@@ -39,6 +39,7 @@ app.use('/api/attendance',  ...gated, require('./routes/attendance'));
 app.use('/api/transactions',...gated, require('./routes/transactions'));
 app.use('/api/documents',   ...gated, require('./routes/documents'));
 app.use('/api/dashboard',   ...gated, require('./routes/dashboard'));
+app.use('/api/users',       ...gated, require('./routes/users'));
 
 // ── Global error handler ────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
