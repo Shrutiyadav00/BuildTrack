@@ -4,6 +4,8 @@ import api from '../../utils/api';
 import toast from 'react-hot-toast';
 import { useSettings } from '../../context/SettingsContext';
 import TablePagination from '../../components/TablePagination';
+import PurchaseOrders from '../vendors/PurchaseOrders';
+import BudgetVsActual from '../../components/dashboard/BudgetVsActual';
 
 export default function Finance() {
   const [projects, setProjects]   = useState([]);
@@ -14,6 +16,7 @@ export default function Finance() {
   const [summary, setSummary]     = useState(null);
   const [loading, setLoading]     = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('transactions');
   const [form, setForm] = useState({ type:'material_purchase', category:'misc', amount:'', description:'', paymentMethod:'cash', vendor:'' });
   const { t, fmt } = useSettings();
 
@@ -76,7 +79,41 @@ export default function Finance() {
         </div>
       </div>
 
-      {summary && (
+      {/* Tab bar */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
+        {[
+          { key: 'transactions', label: 'Transactions' },
+          { key: 'purchase-orders', label: 'Purchase Orders' },
+          { key: 'budget', label: 'Budget vs Actual' },
+        ].map(tb => (
+          <button key={tb.key} onClick={() => setActiveTab(tb.key)} style={{
+            padding: '8px 18px', border: 'none', borderBottom: activeTab === tb.key ? '2px solid var(--primary)' : '2px solid transparent',
+            background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: activeTab === tb.key ? 700 : 500,
+            color: activeTab === tb.key ? 'var(--primary)' : 'var(--t3)', marginBottom: -1,
+          }}>{tb.label}</button>
+        ))}
+      </div>
+
+      {activeTab === 'purchase-orders' && (
+        <PurchaseOrders />
+      )}
+
+      {activeTab === 'budget' && (
+        <div>
+          {!selectedProject ? (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Select a project to view budget breakdown.</div>
+          ) : (
+            <div>
+              <div className="card card-pad" style={{ marginBottom: 20 }}>
+                <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>Budget vs Actual Spend</h2>
+                <BudgetVsActual projectId={selectedProject} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'transactions' && summary && (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px,1fr))', gap:16, marginBottom:20 }}>
           {[
             { icon: TrendingUp,   cls:'si-green',  label: t('totalIncome'),   value: summary.income,        accent:'var(--success)', prefix:'+' },
@@ -100,9 +137,9 @@ export default function Finance() {
         </div>
       )}
 
-      {loading ? (
+      {activeTab === 'transactions' && loading ? (
         <div className="loading"><div className="spinner" /><span className="loading-text">{t('loading')}…</span></div>
-      ) : (
+      ) : activeTab === 'transactions' ? (
         <div className="card">
           <div className="table-wrap">
             <table>
@@ -148,7 +185,7 @@ export default function Finance() {
             onItemsPerPageChange={(n) => { setItemsPerPage(n); setPage(0); }}
           />
         </div>
-      )}
+      ) : null}
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Plus, CheckSquare, Wallet, FileText, LayoutDashboard, ArrowLeft, ClipboardList } from 'lucide-react';
+import { Plus, CheckSquare, Wallet, FileText, LayoutDashboard, ArrowLeft, ClipboardList, Package, BookOpen } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 import { useSettings } from '../../context/SettingsContext';
+import SiteDiary from './SiteDiary';
+import Inventory from './Inventory';
 
 const STATUS_BADGE = { active:'badge-green', planning:'badge-yellow', on_hold:'badge-red', completed:'badge-blue', cancelled:'badge-gray' };
 const TYPE_COLORS  = { residential:'badge-purple', commercial:'badge-blue', industrial:'badge-orange', infrastructure:'badge-teal' };
@@ -20,6 +22,7 @@ export default function ProjectDetail() {
   const [loading, setLoading]    = useState(true);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskForm, setTaskForm]  = useState({ title:'', priority:'medium', dueDate:'', description:'' });
+  const [poSummary, setPoSummary] = useState(null);
   const { t, fmt, fmtShort }     = useSettings();
 
   useEffect(() => {
@@ -37,6 +40,12 @@ export default function ProjectDetail() {
       setDocs(d.data.data);
     }).catch(() => toast.error('Failed to load project'))
       .finally(() => setLoading(false));
+    // Load PO summary for this project (admin only — suppress errors for engineers)
+    api.get(`/purchase-orders?project=${id}&status=unpaid`).then(r => {
+      const pos = r.data.data || [];
+      const total = pos.reduce((s, p) => s + (p.totalAmount || 0), 0);
+      setPoSummary({ count: pos.length, total });
+    }).catch(() => {});
   }, [id]);
 
   const createTask = async (e) => {
@@ -57,10 +66,12 @@ export default function ProjectDetail() {
   if (!project) return <div className="loading">Project not found</div>;
 
   const TABS = [
-    { key:'overview',  label:t('dashboard'),  Icon:LayoutDashboard },
-    { key:'tasks',     label:'Tasks',         Icon:ClipboardList  },
-    { key:'finance',   label:t('finance'),    Icon:Wallet         },
-    { key:'documents', label:t('documents'),  Icon:FileText       },
+    { key:'overview',   label:t('dashboard'),  Icon:LayoutDashboard },
+    { key:'tasks',      label:'Tasks',         Icon:ClipboardList  },
+    { key:'finance',    label:t('finance'),    Icon:Wallet         },
+    { key:'documents',  label:t('documents'),  Icon:FileText       },
+    { key:'diary',      label:'Site Diary',    Icon:BookOpen       },
+    { key:'inventory',  label:'Inventory',     Icon:Package        },
   ];
 
   return (
@@ -110,6 +121,23 @@ export default function ProjectDetail() {
               </div>
             ))}
           </div>
+
+          {/* PO summary card */}
+          {poSummary !== null && poSummary.count > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <Link to={`/purchase-orders?project=${id}`} style={{ textDecoration: 'none' }}>
+                <div style={{ background: 'var(--warning-bg)', borderRadius: 'var(--r-lg)', padding: '12px 16px', border: '1px solid var(--warning)33', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <FileText size={16} color="var(--warning)" />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+                      {poSummary.count} unpaid PO{poSummary.count !== 1 ? 's' : ''} — {fmtShort(poSummary.total)}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 12, color: 'var(--warning)', fontWeight: 600 }}>View all POs →</span>
+                </div>
+              </Link>
+            </div>
+          )}
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
             <div className="card card-pad">
@@ -288,6 +316,10 @@ export default function ProjectDetail() {
           </div>
         </div>
       )}
+
+      {tab === 'diary' && <SiteDiary projectId={id} />}
+
+      {tab === 'inventory' && <Inventory projectId={id} />}
     </div>
   );
 }
