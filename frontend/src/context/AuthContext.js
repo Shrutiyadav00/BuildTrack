@@ -20,6 +20,12 @@ export const AuthProvider = ({ children }) => {
     setUser(user);
   };
 
+  // ── Subscription helpers (read from user.subscription set at login) ────────
+  const subscription     = user?.subscription || null;
+  const hasActiveSub     = subscription?.isActive === true;
+  const subDaysRemaining = subscription?.daysRemaining ?? null;
+  const isSubExpiringSoon = subDaysRemaining !== null && subDaysRemaining >= 0 && subDaysRemaining <= 7;
+
   const login = async (email, password) => {
     setLoading(true);
     try {
@@ -70,6 +76,7 @@ export const AuthProvider = ({ children }) => {
       user, token, loading,
       login, register, logout, updateUser,
       isAdmin, isEngineer, isWorker, isClient, canAccessApp,
+      subscription, hasActiveSub, subDaysRemaining, isSubExpiringSoon,
     }}>
       {children}
     </AuthContext.Provider>

@@ -15,6 +15,7 @@ import Finance from './pages/finance/Finance';
 import Documents from './pages/documents/Documents';
 import Team from './pages/team/Team';
 import WorkerDashboard from './pages/worker/WorkerDashboard';
+import Subscription from './pages/subscription/Subscription';
 
 /* Redirects unauthenticated users to login */
 const PrivateRoute = ({ children }) => {
@@ -92,8 +93,9 @@ export default function App() {
                   <Route path="/documents"    element={<Documents />} />
 
                   {/* Admin-only routes */}
-                  <Route path="/finance"  element={<AdminOnlyRoute><Finance /></AdminOnlyRoute>} />
-                  <Route path="/team"     element={<AdminOnlyRoute><Team /></AdminOnlyRoute>} />
+                  <Route path="/finance"       element={<AdminOnlyRoute><Finance /></AdminOnlyRoute>} />
+                  <Route path="/team"          element={<AdminOnlyRoute><Team /></AdminOnlyRoute>} />
+                  <Route path="/subscription"  element={<AdminOnlyRoute><Subscription /></AdminOnlyRoute>} />
                 </Routes>
               </Layout>
             </AdminRoute>

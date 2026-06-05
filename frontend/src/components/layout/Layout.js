@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
+import SubscriptionBanner from '../subscription/SubscriptionBanner';
 import {
   LayoutDashboard, FolderKanban, HardHat,
   CalendarCheck, Wallet, FolderOpen, Users2, LogOut,
-  Settings, X, Menu, Globe, ChevronDown,
+  Settings, X, Menu, Globe, ChevronDown, CreditCard,
 } from 'lucide-react';
 
 // roles: 'all' means every non-client/non-worker logged-in user can see it
@@ -17,7 +18,8 @@ const NAV_ITEMS = [
   { to:'/attendance', icon:CalendarCheck,   key:'attendance', roles:['super_admin','admin','owner','engineer','supervisor','manager'] },
   { to:'/finance',    icon:Wallet,          key:'finance',    roles:['super_admin','admin','owner'] },
   { to:'/documents',  icon:FolderOpen,      key:'documents',  roles:'all' },
-  { to:'/team',       icon:Users2,          key:'team',       roles:['super_admin','admin','owner'] },
+  { to:'/team',         icon:Users2,     key:'team',         roles:['super_admin','admin','owner'] },
+  { to:'/subscription', icon:CreditCard, key:'subscription', roles:['super_admin','admin','owner'] },
 ];
 
 export default function Layout({ children }) {
@@ -209,7 +211,10 @@ export default function Layout({ children }) {
         </div>
       )}
 
-      <main className="main-content">{children}</main>
+      <main className="main-content">
+        <SubscriptionBanner />
+        {children}
+      </main>
     </div>
   );
 }
