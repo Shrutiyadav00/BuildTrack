@@ -36,7 +36,20 @@ const ProjectSchema = new mongoose.Schema({
   status: { type: String, enum: ['planning', 'active', 'on_hold', 'completed', 'cancelled'], default: 'planning' },
   phases: [PhaseSchema],
   clientPortalEnabled: { type: Boolean, default: false },
-  clientPortalToken: String
+  clientPortalToken:   String,
+
+  // Login-based client user linked to this project
+  clientUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
+  // Running totals of paid POs + approved transactions per category
+  budgetSpent: {
+    total:     { type: Number, default: 0 },
+    structure: { type: Number, default: 0 },
+    labour:    { type: Number, default: 0 },
+    mep:       { type: Number, default: 0 },
+    finishing: { type: Number, default: 0 },
+    misc:      { type: Number, default: 0 },
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Project', ProjectSchema);

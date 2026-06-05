@@ -15,7 +15,12 @@ import Finance from './pages/finance/Finance';
 import Documents from './pages/documents/Documents';
 import Team from './pages/team/Team';
 import WorkerDashboard from './pages/worker/WorkerDashboard';
-import Subscription from './pages/subscription/Subscription';
+import Subscription    from './pages/subscription/Subscription';
+import ClientLayout    from './components/client/ClientLayout';
+import ClientPortal    from './pages/client/ClientPortal';
+import ClientActivity  from './pages/client/ClientActivity';
+import ClientPayments  from './pages/client/ClientPayments';
+import ClientBuilderProfile from './pages/client/ClientBuilderProfile';
 
 /* Redirects unauthenticated users to login */
 const PrivateRoute = ({ children }) => {
@@ -70,13 +75,17 @@ export default function App() {
             <WorkerRoute><WorkerDashboard /></WorkerRoute>
           } />
 
-          {/* Client portal — role: client only (placeholder until build-6) */}
+          {/* Client portal — role: client only */}
           <Route path="/client/*" element={
             <ClientRoute>
-              <div style={{ padding: 40, textAlign: 'center' }}>
-                <h2>Client Portal</h2>
-                <p>Coming soon — build-6</p>
-              </div>
+              <ClientLayout>
+                <Routes>
+                  <Route path="/"         element={<ClientPortal />} />
+                  <Route path="/activity" element={<ClientActivity />} />
+                  <Route path="/payments" element={<ClientPayments />} />
+                  <Route path="/builder"  element={<ClientBuilderProfile />} />
+                </Routes>
+              </ClientLayout>
             </ClientRoute>
           } />
 
