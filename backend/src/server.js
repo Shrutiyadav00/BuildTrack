@@ -43,6 +43,11 @@ app.use('/api/users',         ...gated, require('./routes/users'));
 app.use('/api/notifications',    require('./routes/notifications')); // auth only, no sub-gate
 app.use('/api/client',          require('./routes/clientPortal'));  // client role only
 app.use('/api/payment-schedules', ...gated, require('./routes/paymentSchedules'));
+app.use('/api/vendors',           ...gated, require('./routes/vendors'));
+app.use('/api/purchase-orders',   ...gated, require('./routes/purchaseOrders'));
+app.use('/api/site-diary',        ...gated, require('./routes/siteDiary'));
+app.use('/api/inventory',         ...gated, require('./routes/inventory'));
+app.use('/api/reports',           ...gated, require('./routes/reports'));
 
 // ── Global error handler ────────────────────────────────────────────────────
 app.use((err, req, res, next) => {

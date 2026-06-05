@@ -16,7 +16,9 @@ const TransactionSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   receipt: String,
-  notes: String
+  notes: String,
+  poRef: { type: mongoose.Schema.Types.ObjectId, ref: 'PurchaseOrder' },
+  owner:      { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Transaction', TransactionSchema);

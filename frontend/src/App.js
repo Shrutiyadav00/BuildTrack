@@ -21,6 +21,11 @@ import ClientPortal    from './pages/client/ClientPortal';
 import ClientActivity  from './pages/client/ClientActivity';
 import ClientPayments  from './pages/client/ClientPayments';
 import ClientBuilderProfile from './pages/client/ClientBuilderProfile';
+import Vendors          from './pages/vendors/Vendors';
+import VendorDetail     from './pages/vendors/VendorDetail';
+import PurchaseOrders   from './pages/vendors/PurchaseOrders';
+import PurchaseOrderForm from './pages/vendors/PurchaseOrderForm';
+import Reports          from './pages/reports/Reports';
 
 /* Redirects unauthenticated users to login */
 const PrivateRoute = ({ children }) => {
@@ -102,9 +107,14 @@ export default function App() {
                   <Route path="/documents"    element={<Documents />} />
 
                   {/* Admin-only routes */}
-                  <Route path="/finance"       element={<AdminOnlyRoute><Finance /></AdminOnlyRoute>} />
-                  <Route path="/team"          element={<AdminOnlyRoute><Team /></AdminOnlyRoute>} />
-                  <Route path="/subscription"  element={<AdminOnlyRoute><Subscription /></AdminOnlyRoute>} />
+                  <Route path="/finance"               element={<AdminOnlyRoute><Finance /></AdminOnlyRoute>} />
+                  <Route path="/team"                  element={<AdminOnlyRoute><Team /></AdminOnlyRoute>} />
+                  <Route path="/subscription"          element={<AdminOnlyRoute><Subscription /></AdminOnlyRoute>} />
+                  <Route path="/vendors"               element={<AdminOnlyRoute><Vendors /></AdminOnlyRoute>} />
+                  <Route path="/vendors/:id"           element={<AdminOnlyRoute><VendorDetail /></AdminOnlyRoute>} />
+                  <Route path="/purchase-orders"       element={<AdminOnlyRoute><PurchaseOrders /></AdminOnlyRoute>} />
+                  <Route path="/purchase-orders/new"   element={<AdminOnlyRoute><PurchaseOrderForm /></AdminOnlyRoute>} />
+                  <Route path="/reports"               element={<AdminOnlyRoute><Reports /></AdminOnlyRoute>} />
                 </Routes>
               </Layout>
             </AdminRoute>
