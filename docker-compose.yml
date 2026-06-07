@@ -20,6 +20,13 @@ services:
       JWT_EXPIRE: 7d
       CLIENT_URL: http://localhost:3000
       NODE_ENV: production
+      # ── Email (for PO send feature) ───────────────────────────────
+      # Replace with your SMTP credentials. If left blank, email is skipped silently.
+      EMAIL_HOST: smtp.gmail.com
+      EMAIL_PORT: 587
+      EMAIL_USER: your@gmail.com
+      EMAIL_PASS: your_app_password
+      EMAIL_FROM: "BuildTrack <noreply@buildtrack.app>"
     depends_on:
       - mongo
     volumes:

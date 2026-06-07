@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LogOut, User, CalendarCheck, DollarSign, Briefcase, TrendingUp } from 'lucide-react';
 import TablePagination from '../../components/TablePagination';
+import NotificationBell from '../../components/notifications/NotificationBell';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -172,6 +173,7 @@ export default function WorkerDashboard() {
             <span style={{ fontSize:13, fontWeight:600, color:'var(--t1)' }}>{user?.name}</span>
             <span style={{ fontSize:11, color:'var(--t3)', textTransform:'capitalize' }}>{worker?.trade?.replace('_',' ') || t('workers')}</span>
           </div>
+          <NotificationBell />
           <button className="btn-logout" title={t('logout')} onClick={handleLogout}><LogOut size={14} /></button>
         </div>
       </header>

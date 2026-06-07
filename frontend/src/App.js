@@ -21,6 +21,7 @@ import ClientPortal    from './pages/client/ClientPortal';
 import ClientActivity  from './pages/client/ClientActivity';
 import ClientPayments  from './pages/client/ClientPayments';
 import ClientBuilderProfile from './pages/client/ClientBuilderProfile';
+import ClientDocuments      from './pages/client/ClientDocuments';
 import Vendors          from './pages/vendors/Vendors';
 import VendorDetail     from './pages/vendors/VendorDetail';
 import PurchaseOrders   from './pages/vendors/PurchaseOrders';
@@ -87,9 +88,10 @@ export default function App() {
               <ClientLayout>
                 <Routes>
                   <Route path="/"         element={<ClientPortal />} />
-                  <Route path="/activity" element={<ClientActivity />} />
-                  <Route path="/payments" element={<ClientPayments />} />
-                  <Route path="/builder"  element={<ClientBuilderProfile />} />
+                  <Route path="/activity"  element={<ClientActivity />} />
+                  <Route path="/payments"  element={<ClientPayments />} />
+                  <Route path="/documents" element={<ClientDocuments />} />
+                  <Route path="/builder"   element={<ClientBuilderProfile />} />
                 </Routes>
               </ClientLayout>
             </ClientRoute>

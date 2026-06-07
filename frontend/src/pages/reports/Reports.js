@@ -7,6 +7,21 @@ import BudgetVsActual from '../../components/dashboard/BudgetVsActual';
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const fmt = (n) => `₹${(n || 0).toLocaleString('en-IN')}`;
 
+// Helper — convert array of objects to CSV and trigger download
+function downloadCSV(rows, headers, filename) {
+  const escape = (v) => {
+    const s = String(v ?? '');
+    return s.includes(',') || s.includes('"') || s.includes('\n')
+      ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [headers.join(','), ...rows.map(r => headers.map(h => escape(r[h])).join(','))];
+  const blob  = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href      = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function Reports() {
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSP] = useState('');
@@ -56,6 +71,33 @@ export default function Reports() {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch { toast.error('PDF download failed'); } finally { setDl(false); }
+  };
+
+  const downloadPayrollCSV = () => {
+    if (!payrollData) return;
+    const rows = payrollData.workers.map(w => ({
+      Worker: w.name, Trade: w.trade?.replace(/_/g, ' '), 'Pay Type': w.payType,
+      'Daily Rate': w.dailyRate, 'Days Worked': w.days, 'Total (INR)': w.total,
+    }));
+    rows.push({ Worker: 'GRAND TOTAL', Trade: '', 'Pay Type': '', 'Daily Rate': '', 'Days Worked': '', 'Total (INR)': payrollData.grandTotal });
+    downloadCSV(rows, ['Worker','Trade','Pay Type','Daily Rate','Days Worked','Total (INR)'],
+      `payroll-${MONTHS[month-1]}-${year}.csv`);
+    toast.success('CSV downloaded');
+  };
+
+  const downloadBudgetCSV = () => {
+    if (!budgetData) return;
+    const rows = Object.entries(budgetData.categories)
+      .filter(([, v]) => v.budget > 0 || v.spent > 0)
+      .map(([cat, v]) => ({
+        Category: cat.charAt(0).toUpperCase() + cat.slice(1),
+        'Budget (INR)': v.budget, 'Spent (INR)': v.spent,
+        'Variance (INR)': v.variance, '% Used': v.pct,
+      }));
+    rows.push({ Category: 'TOTAL', 'Budget (INR)': budgetData.budget.total, 'Spent (INR)': budgetData.spent.total, 'Variance (INR)': budgetData.overallVariance, '% Used': '' });
+    downloadCSV(rows, ['Category','Budget (INR)','Spent (INR)','Variance (INR)','% Used'],
+      `budget-${projects.find(p => p._id === selectedProject)?.name || selectedProject}.csv`);
+    toast.success('CSV downloaded');
   };
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
@@ -130,10 +172,16 @@ export default function Reports() {
                     </tr>
                   </tfoot>
                 </table>
-                <button onClick={downloadPayrollPDF} disabled={downloading}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center', padding: '8px', border: '1px solid var(--primary)', borderRadius: 'var(--r)', background: 'var(--primary-light)', color: 'var(--primary)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-                  <Download size={14} /> {downloading ? 'Downloading...' : 'Download PDF'}
-                </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={downloadPayrollPDF} disabled={downloading}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'center', padding: '8px', border: '1px solid var(--primary)', borderRadius: 'var(--r)', background: 'var(--primary-light)', color: 'var(--primary)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                    <Download size={14} /> {downloading ? 'Downloading...' : 'PDF'}
+                  </button>
+                  <button onClick={downloadPayrollCSV}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'center', padding: '8px', border: '1px solid var(--success)', borderRadius: 'var(--r)', background: 'var(--success-bg)', color: 'var(--success)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                    <Download size={14} /> CSV
+                  </button>
+                </div>
               </div>
             )}
 
@@ -188,6 +236,13 @@ export default function Reports() {
                   </tbody>
                 </table>
               </div>
+            )}
+
+            {budgetData && (
+              <button onClick={downloadBudgetCSV}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center', padding: '8px', marginTop: 10, border: '1px solid var(--success)', borderRadius: 'var(--r)', background: 'var(--success-bg)', color: 'var(--success)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                <Download size={14} /> Download CSV
+              </button>
             )}
 
             {!budgetData && !loadingBudget && (
