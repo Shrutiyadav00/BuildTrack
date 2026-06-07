@@ -26,6 +26,7 @@ import VendorDetail     from './pages/vendors/VendorDetail';
 import PurchaseOrders   from './pages/vendors/PurchaseOrders';
 import PurchaseOrderForm from './pages/vendors/PurchaseOrderForm';
 import Reports          from './pages/reports/Reports';
+import Notifications    from './pages/notifications/Notifications';
 
 /* Redirects unauthenticated users to login */
 const PrivateRoute = ({ children }) => {
@@ -115,6 +116,7 @@ export default function App() {
                   <Route path="/purchase-orders"       element={<AdminOnlyRoute><PurchaseOrders /></AdminOnlyRoute>} />
                   <Route path="/purchase-orders/new"   element={<AdminOnlyRoute><PurchaseOrderForm /></AdminOnlyRoute>} />
                   <Route path="/reports"               element={<AdminOnlyRoute><Reports /></AdminOnlyRoute>} />
+                  <Route path="/notifications"         element={<Notifications />} />
                 </Routes>
               </Layout>
             </AdminRoute>

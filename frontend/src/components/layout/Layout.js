@@ -8,19 +8,28 @@ import {
   LayoutDashboard, FolderKanban, HardHat,
   CalendarCheck, Wallet, FolderOpen, Users2, LogOut,
   Settings, X, Menu, Globe, ChevronDown, CreditCard,
+  Package, FileText, BarChart2,
 } from 'lucide-react';
+
+const ADMIN = ['super_admin', 'admin', 'owner'];
+const ENG_UP = ['super_admin', 'admin', 'owner', 'engineer', 'supervisor', 'manager'];
 
 // roles: 'all' means every non-client/non-worker logged-in user can see it
 // roles: array means only those specific roles
 const NAV_ITEMS = [
+  // ── Main Menu (first 4) ──────────────────────────────────────────
   { to:'/',           icon:LayoutDashboard, key:'dashboard',  roles:'all' },
   { to:'/projects',   icon:FolderKanban,    key:'projects',   roles:'all' },
-  { to:'/workers',    icon:HardHat,         key:'workers',    roles:['super_admin','admin','owner','engineer','supervisor','manager'] },
-  { to:'/attendance', icon:CalendarCheck,   key:'attendance', roles:['super_admin','admin','owner','engineer','supervisor','manager'] },
-  { to:'/finance',    icon:Wallet,          key:'finance',    roles:['super_admin','admin','owner'] },
-  { to:'/documents',  icon:FolderOpen,      key:'documents',  roles:'all' },
-  { to:'/team',         icon:Users2,     key:'team',         roles:['super_admin','admin','owner'] },
-  { to:'/subscription', icon:CreditCard, key:'subscription', roles:['super_admin','admin','owner'] },
+  { to:'/workers',    icon:HardHat,         key:'workers',    roles:ENG_UP },
+  { to:'/attendance', icon:CalendarCheck,   key:'attendance', roles:ENG_UP },
+  // ── Management (rest) ────────────────────────────────────────────
+  { to:'/finance',         icon:Wallet,        key:'finance',         roles:ADMIN },
+  { to:'/vendors',         icon:Package,       key:'vendors',         roles:ADMIN },
+  { to:'/purchase-orders', icon:FileText,      key:'purchaseOrders',  roles:ADMIN },
+  { to:'/reports',         icon:BarChart2,     key:'reports',         roles:ADMIN },
+  { to:'/documents',       icon:FolderOpen,    key:'documents',       roles:'all' },
+  { to:'/team',            icon:Users2,        key:'team',            roles:ADMIN },
+  { to:'/subscription',    icon:CreditCard,    key:'subscription',    roles:ADMIN },
 ];
 
 export default function Layout({ children }) {
