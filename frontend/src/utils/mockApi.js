@@ -523,9 +523,12 @@ const handlers = {
   },
 
   // ── Vendors ────────────────────────────────────────────────────────────────
-  'GET /vendors': async () => {
+  'GET /vendors': async ({ query }) => {
     await delay();
-    return ok(vendors.filter(v => v.isActive));
+    // active=true → only active (used by PO form dropdowns)
+    // default    → all vendors (used by vendor management list)
+    const list = query.active === 'true' ? vendors.filter(v => v.isActive) : vendors;
+    return ok(list);
   },
 
   'GET /vendors/:id': async ({ params }) => {
@@ -957,23 +960,31 @@ const handlers = {
 
     const budget = project.budget      || { total: 0, structure: 0, labour: 0, mep: 0, finishing: 0, misc: 0 };
     const spent  = project.budgetSpent || { total: 0, structure: 0, labour: 0, mep: 0, finishing: 0, misc: 0 };
-    const categories = ['structure', 'labour', 'mep', 'finishing', 'misc'];
+    const CATS   = ['structure', 'labour', 'mep', 'finishing', 'misc'];
 
-    const breakdown = categories.map(cat => ({
-      category:  cat,
-      budget:    budget[cat] || 0,
-      spent:     spent[cat]  || 0,
-      variance:  (budget[cat] || 0) - (spent[cat] || 0),
-      pct:       budget[cat] ? Math.round((spent[cat] || 0) / budget[cat] * 100) : 0,
-    }));
+    // Build both a flat array (breakdown) AND a keyed object (categories) so
+    // different consumers can use whichever shape they need.
+    const categories = {};
+    CATS.forEach(cat => {
+      categories[cat] = {
+        budget:   budget[cat] || 0,
+        spent:    spent[cat]  || 0,
+        variance: (budget[cat] || 0) - (spent[cat] || 0),
+        pct:      budget[cat] ? Math.round((spent[cat] || 0) / budget[cat] * 100) : 0,
+      };
+    });
+
+    const breakdown = CATS.map(cat => ({ category: cat, ...categories[cat] }));
 
     return ok({
-      project:   { _id: project._id, name: project.name },
+      project:         { _id: project._id, name: project.name },
       budget,
       spent,
+      categories,
       breakdown,
-      overBudget: (spent.total || 0) > (budget.total || 0),
-      pctUsed:    budget.total ? Math.round((spent.total || 0) / budget.total * 100) : 0,
+      overallVariance: (budget.total || 0) - (spent.total || 0),
+      overBudget:      (spent.total || 0) > (budget.total || 0),
+      pctUsed:         budget.total ? Math.round((spent.total || 0) / budget.total * 100) : 0,
     });
   },
 };

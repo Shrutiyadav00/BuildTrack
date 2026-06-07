@@ -21,7 +21,7 @@ export default function PurchaseOrderForm() {
   const [form, setForm] = useState({
     project: '', vendor: '', category: 'misc',
     items: [{ name: '', qty: '', unit: 'nos', rate: '', total: 0 }],
-    tax: 0, notes: '', privateMode: false,
+    taxPct: 0, notes: '', privateMode: false,
   });
 
   useEffect(() => {
@@ -32,7 +32,9 @@ export default function PurchaseOrderForm() {
   const set = (field, val) => setForm(f => ({ ...f, [field]: val }));
 
   const subtotal    = form.items.reduce((s, r) => s + (parseFloat(r.total) || 0), 0);
-  const totalAmount = subtotal + (parseFloat(form.tax) || 0);
+  const taxPct      = parseFloat(form.taxPct) || 0;
+  const taxAmount   = Math.round(subtotal * taxPct / 100);
+  const totalAmount = subtotal + taxAmount;
 
   const canNext1 = form.project && form.vendor && form.category;
   const canNext2 = form.items.some(i => i.name && parseFloat(i.qty) > 0 && parseFloat(i.rate) > 0);
@@ -43,7 +45,7 @@ export default function PurchaseOrderForm() {
     try {
       const payload = {
         ...form,
-        tax: parseFloat(form.tax) || 0,
+        tax: taxAmount,        // store rupee amount, not percent
         totalAmount,
         items: form.items.filter(i => i.name).map(i => ({
           name: i.name, qty: parseFloat(i.qty), unit: i.unit, rate: parseFloat(i.rate), total: parseFloat(i.total) || 0,
@@ -136,14 +138,29 @@ export default function PurchaseOrderForm() {
           <div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>Line Items</h3>
             <POLineItems items={form.items} onChange={items => set('items', items)} />
-            <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end' }}>
-              <label style={{ fontSize: 13, color: 'var(--t2)', fontWeight: 600 }}>Tax (₹):</label>
-              <input type="number" min="0" value={form.tax} onChange={e => set('tax', e.target.value)}
-                style={{ width: 120, padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, textAlign: 'right' }} />
+            <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <label style={{ fontSize: 13, color: 'var(--t2)', fontWeight: 600 }}>Tax %:</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 0, border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+                <input
+                  type="number" min="0" max="100" step="0.5"
+                  value={form.taxPct}
+                  onChange={e => set('taxPct', e.target.value)}
+                  style={{ width: 80, padding: '7px 10px', border: 'none', fontSize: 13, textAlign: 'right', outline: 'none', background: 'var(--white)' }}
+                />
+                <span style={{ padding: '7px 10px', background: 'var(--bg)', fontSize: 13, color: 'var(--t3)', fontWeight: 600, borderLeft: '1px solid var(--border)' }}>%</span>
+              </div>
+              {taxPct > 0 && (
+                <span style={{ fontSize: 12, color: 'var(--t3)' }}>= {fmt(taxAmount)}</span>
+              )}
             </div>
             <div style={{ marginTop: 12, textAlign: 'right', padding: '12px 0', borderTop: '2px solid var(--border)' }}>
               <div style={{ fontSize: 13, color: 'var(--t2)' }}>Subtotal: <strong>{fmt(subtotal)}</strong></div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginTop: 4 }}>Total: {fmt(totalAmount)}</div>
+              {taxPct > 0 && (
+                <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 2 }}>
+                  Tax ({taxPct}%): <strong>{fmt(taxAmount)}</strong>
+                </div>
+              )}
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginTop: 6 }}>Total: {fmt(totalAmount)}</div>
             </div>
           </div>
         )}
@@ -175,7 +192,9 @@ export default function PurchaseOrderForm() {
                   { label: 'Vendor',   value: vendors.find(v => v._id === form.vendor)?.companyName || form.vendor },
                   { label: 'Category', value: form.category },
                   { label: 'Items',    value: `${form.items.filter(i => i.name).length} line item(s)` },
-                  { label: 'Total',    value: fmt(totalAmount) },
+                  { label: 'Subtotal', value: fmt(subtotal) },
+                  ...(taxPct > 0 ? [{ label: `Tax (${taxPct}%)`, value: fmt(taxAmount) }] : []),
+                  { label: 'Grand Total', value: fmt(totalAmount) },
                 ].map(r => (
                   <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                     <span style={{ color: 'var(--t3)' }}>{r.label}</span>

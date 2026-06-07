@@ -1,28 +1,150 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { FileText, Plus, Download, Send, CheckCircle, Trash2 } from 'lucide-react';
+import { FileText, Plus, Download, Send, CheckCircle, Trash2, Eye, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 
 const STATUS_META = {
-  draft:   { label: 'Draft',   color: 'var(--t3)',      bg: 'var(--bg)' },
-  sent:    { label: 'Sent',    color: 'var(--info)',     bg: 'var(--info-bg)' },
-  unpaid:  { label: 'Unpaid',  color: 'var(--warning)',  bg: 'var(--warning-bg)' },
-  paid:    { label: 'Paid',    color: 'var(--success)',  bg: 'var(--success-bg)' },
+  draft:   { label: 'Draft',   color: 'var(--t3)',     bg: 'var(--bg)'         },
+  sent:    { label: 'Sent',    color: 'var(--info)',    bg: 'var(--info-bg)'    },
+  unpaid:  { label: 'Unpaid',  color: 'var(--warning)', bg: 'var(--warning-bg)' },
+  paid:    { label: 'Paid',    color: 'var(--success)', bg: 'var(--success-bg)' },
 };
 
 const fmt     = (n) => `₹${(n || 0).toLocaleString('en-IN')}`;
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
+// ── PO View Modal ──────────────────────────────────────────────────────────────
+function POViewModal({ po, onClose }) {
+  if (!po) return null;
+  const meta = STATUS_META[po.status] || STATUS_META.draft;
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', width: '100%', maxWidth: 640, maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+
+        {/* Modal header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, background: 'var(--white)', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <FileText size={18} color="var(--primary)" />
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--t1)', fontFamily: 'monospace' }}>{po.poNumber}</div>
+              <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 1 }}>{fmtDate(po.createdAt)}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ padding: '3px 12px', borderRadius: 'var(--r-full)', fontSize: 11, fontWeight: 700, background: meta.bg, color: meta.color }}>
+              {meta.label}
+            </span>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3)', padding: 4, display: 'flex' }}>
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+          {/* Project + Vendor */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '12px 14px' }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--t4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Project</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{po.project?.name || po.project || '—'}</div>
+            </div>
+            <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '12px 14px' }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--t4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Vendor</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{po.vendor?.companyName || po.vendor || '—'}</div>
+              {po.vendor?.phone && <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>{po.vendor.phone}</div>}
+            </div>
+          </div>
+
+          {/* Category badge */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--t3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</div>
+            <span style={{ padding: '3px 12px', borderRadius: 'var(--r-full)', background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--t2)', textTransform: 'capitalize' }}>
+              {po.category}
+            </span>
+          </div>
+
+          {/* Line items table */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--t3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Line Items</div>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ padding: '8px 12px', textAlign: 'left',  fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>#</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'left',  fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>Item</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>Qty</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center',fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>Unit</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>Rate</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(po.items || []).map((item, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                      <td style={{ padding: '9px 12px', color: 'var(--t4)', fontSize: 12 }}>{idx + 1}</td>
+                      <td style={{ padding: '9px 12px', color: 'var(--t1)', fontWeight: 600 }}>{item.name}</td>
+                      <td style={{ padding: '9px 12px', textAlign: 'right', color: 'var(--t2)' }}>{item.qty}</td>
+                      <td style={{ padding: '9px 12px', textAlign: 'center', color: 'var(--t3)', fontSize: 11 }}>{item.unit || '—'}</td>
+                      <td style={{ padding: '9px 12px', textAlign: 'right', color: 'var(--t2)' }}>{fmt(item.rate)}</td>
+                      <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--t1)' }}>{fmt(item.total || item.qty * item.rate)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Totals */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end', marginTop: 10, paddingRight: 4 }}>
+              <div style={{ fontSize: 13, color: 'var(--t3)' }}>
+                Subtotal: <strong style={{ color: 'var(--t1)' }}>{fmt(po.subtotal)}</strong>
+              </div>
+              {po.tax > 0 && (
+                <div style={{ fontSize: 13, color: 'var(--t3)' }}>
+                  Tax: <strong style={{ color: 'var(--t1)' }}>{fmt(po.tax)}</strong>
+                </div>
+              )}
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', borderTop: '2px solid var(--border)', paddingTop: 6, marginTop: 2 }}>
+                Grand Total: {fmt(po.totalAmount)}
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          {po.notes && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--t3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Notes</div>
+              <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: 13, color: 'var(--t2)', lineHeight: 1.5 }}>
+                {po.notes}
+              </div>
+            </div>
+          )}
+
+          {/* Footer flags */}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11, color: 'var(--t4)' }}>
+            {po.sentToVendor && <span>✓ Sent to vendor</span>}
+            {po.sentToClient && <span>✓ Sent to client</span>}
+            {po.privateMode  && <span>🔒 Private mode (bank details hidden)</span>}
+            {po.paidAt       && <span>Paid on {fmtDate(po.paidAt)}</span>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main PurchaseOrders component ─────────────────────────────────────────────
 export default function PurchaseOrders({ vendorFilter, showHeader = true }) {
   const navigate = useNavigate();
   const [pos, setPos]           = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading]   = useState(true);
-  const [filters, setFilters]   = useState({ status: '', project: vendorFilter ? '' : '' });
+  const [filters, setFilters]   = useState({ status: '', project: '' });
   const [sendModal, setSendModal] = useState(null);
   const [sendForm, setSendForm]   = useState({ vendorEmail: '', clientEmail: '', sendToVendor: false, sendToClient: false });
   const [sending, setSending]     = useState(false);
+  const [viewPO, setViewPO]       = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -41,18 +163,23 @@ export default function PurchaseOrders({ vendorFilter, showHeader = true }) {
   const downloadPDF = async (po) => {
     try {
       const res = await api.get(`/purchase-orders/${po._id}/pdf`, { responseType: 'blob' });
+      // Mock mode returns JSON, not a blob — detect and show friendly message
+      if (res.data?.data?.message) {
+        toast(res.data.data.message, { icon: 'ℹ️' });
+        return;
+      }
       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
       const a   = document.createElement('a');
       a.href    = url; a.download = `${po.poNumber}.pdf`; a.click();
       window.URL.revokeObjectURL(url);
-    } catch { toast.error('PDF download failed'); }
+    } catch { toast.error('PDF download not available in demo mode'); }
   };
 
   const markPaid = async (po) => {
-    if (!window.confirm(`Mark ${po.poNumber} as PAID? This will deduct ₹${(po.totalAmount||0).toLocaleString('en-IN')} from project budget.`)) return;
+    if (!window.confirm(`Mark ${po.poNumber} as PAID?\nThis will deduct ${fmt(po.totalAmount)} from the project budget.`)) return;
     try {
       await api.put(`/purchase-orders/${po._id}/status`, { status: 'paid' });
-      toast.success('PO marked as paid');
+      toast.success('PO marked as paid — budget updated');
       load();
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
   };
@@ -74,12 +201,8 @@ export default function PurchaseOrders({ vendorFilter, showHeader = true }) {
   const doSend = async () => {
     setSending(true);
     try {
-      const res = await api.post(`/purchase-orders/${sendModal._id}/send`, sendForm);
-      if (res.data.errors?.length) {
-        res.data.errors.forEach(e => toast.error(e));
-      } else {
-        toast.success('PO sent successfully');
-      }
+      await api.post(`/purchase-orders/${sendModal._id}/send`, sendForm);
+      toast.success('PO sent successfully');
       setSendModal(null);
       load();
     } catch { toast.error('Send failed'); } finally { setSending(false); }
@@ -101,7 +224,7 @@ export default function PurchaseOrders({ vendorFilter, showHeader = true }) {
         </div>
       )}
 
-      {/* Filters */}
+      {/* Filters — no duplicate button here */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
           style={{ padding: '7px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, background: 'var(--white)', color: 'var(--t1)' }}>
@@ -114,11 +237,6 @@ export default function PurchaseOrders({ vendorFilter, showHeader = true }) {
             <option value="">All Projects</option>
             {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
           </select>
-        )}
-        {showHeader && (
-          <button onClick={() => navigate('/purchase-orders/new')} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: '7px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-            <Plus size={13} /> New PO
-          </button>
         )}
       </div>
 
@@ -141,12 +259,15 @@ export default function PurchaseOrders({ vendorFilter, showHeader = true }) {
               {pos.map((po, i) => {
                 const meta = STATUS_META[po.status] || STATUS_META.draft;
                 return (
-                  <tr key={po._id} style={{ borderBottom: i < pos.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                  <tr key={po._id}
+                    style={{ borderBottom: i < pos.length - 1 ? '1px solid var(--border-light)' : 'none' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                    onMouseLeave={e => e.currentTarget.style.background = ''}>
                     <td style={{ padding: '12px 14px', fontWeight: 700, fontSize: 13, color: 'var(--primary)', fontFamily: 'monospace' }}>{po.poNumber}</td>
                     <td style={{ padding: '12px 14px', fontSize: 13, color: 'var(--t2)' }}>{po.project?.name || '—'}</td>
                     <td style={{ padding: '12px 14px', fontSize: 13, color: 'var(--t1)' }}>{po.vendor?.companyName || '—'}</td>
                     <td style={{ padding: '12px 14px' }}>
-                      <span style={{ padding: '2px 8px', borderRadius: 'var(--r-full)', fontSize: 11, background: 'var(--bg)', color: 'var(--t2)' }}>{po.category}</span>
+                      <span style={{ padding: '2px 8px', borderRadius: 'var(--r-full)', fontSize: 11, background: 'var(--bg)', color: 'var(--t2)', textTransform: 'capitalize', border: '1px solid var(--border)' }}>{po.category}</span>
                     </td>
                     <td style={{ padding: '12px 14px', fontWeight: 700, fontSize: 14, color: 'var(--t1)' }}>{fmt(po.totalAmount)}</td>
                     <td style={{ padding: '12px 14px' }}>
@@ -154,22 +275,35 @@ export default function PurchaseOrders({ vendorFilter, showHeader = true }) {
                     </td>
                     <td style={{ padding: '12px 14px', fontSize: 12, color: 'var(--t3)' }}>{fmtDate(po.createdAt)}</td>
                     <td style={{ padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button onClick={() => downloadPDF(po)} title="Download PDF" style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 8px', cursor: 'pointer', color: 'var(--t2)', display: 'flex', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                        {/* View */}
+                        <button onClick={() => setViewPO(po)} title="View PO details"
+                          style={{ background: 'var(--primary-light)', border: 'none', borderRadius: 'var(--r)', padding: '4px 8px', cursor: 'pointer', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600 }}>
+                          <Eye size={11} /> View
+                        </button>
+                        {/* Download PDF */}
+                        <button onClick={() => downloadPDF(po)} title="Download PDF"
+                          style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 8px', cursor: 'pointer', color: 'var(--t2)', display: 'flex', alignItems: 'center' }}>
                           <Download size={12} />
                         </button>
+                        {/* Send */}
                         {po.status !== 'paid' && (
-                          <button onClick={() => openSend(po)} title="Send by email" style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 8px', cursor: 'pointer', color: 'var(--t2)', display: 'flex', alignItems: 'center' }}>
+                          <button onClick={() => openSend(po)} title="Send by email"
+                            style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 8px', cursor: 'pointer', color: 'var(--t2)', display: 'flex', alignItems: 'center' }}>
                             <Send size={12} />
                           </button>
                         )}
+                        {/* Mark Paid */}
                         {(po.status === 'sent' || po.status === 'unpaid') && (
-                          <button onClick={() => markPaid(po)} title="Mark as paid" style={{ background: 'var(--success-bg)', border: 'none', borderRadius: 'var(--r)', padding: '4px 8px', cursor: 'pointer', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600 }}>
+                          <button onClick={() => markPaid(po)} title="Mark as paid"
+                            style={{ background: 'var(--success-bg)', border: 'none', borderRadius: 'var(--r)', padding: '4px 8px', cursor: 'pointer', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600 }}>
                             <CheckCircle size={11} /> Paid
                           </button>
                         )}
+                        {/* Delete draft */}
                         {po.status === 'draft' && (
-                          <button onClick={() => deletePO(po)} title="Delete draft" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 4 }}>
+                          <button onClick={() => deletePO(po)} title="Delete draft"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 4 }}>
                             <Trash2 size={13} />
                           </button>
                         )}
@@ -183,6 +317,9 @@ export default function PurchaseOrders({ vendorFilter, showHeader = true }) {
         )}
       </div>
 
+      {/* View PO Modal */}
+      {viewPO && <POViewModal po={viewPO} onClose={() => setViewPO(null)} />}
+
       {/* Send modal */}
       {sendModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -190,7 +327,7 @@ export default function PurchaseOrders({ vendorFilter, showHeader = true }) {
             <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', marginBottom: 20 }}>Send {sendModal.poNumber}</h3>
 
             <div style={{ marginBottom: 14 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 8 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 8, cursor: 'pointer' }}>
                 <input type="checkbox" checked={sendForm.sendToVendor} onChange={e => setSendForm(f => ({ ...f, sendToVendor: e.target.checked }))} />
                 Send to Vendor
               </label>
@@ -201,7 +338,7 @@ export default function PurchaseOrders({ vendorFilter, showHeader = true }) {
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 8 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 8, cursor: 'pointer' }}>
                 <input type="checkbox" checked={sendForm.sendToClient} onChange={e => setSendForm(f => ({ ...f, sendToClient: e.target.checked }))} />
                 Send to Client
               </label>

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Building2, Plus, Edit2, ToggleLeft, ToggleRight, Phone, Mail, MapPin } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Building2, Plus, Edit2, ToggleLeft, ToggleRight, Phone, Mail, MapPin, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
@@ -19,22 +19,29 @@ const labelStyle = { fontSize: 12, fontWeight: 600, color: 'var(--t2)', marginBo
 
 export default function Vendors() {
   const navigate = useNavigate();
-  const [vendors, setVendors]   = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [modal, setModal]       = useState(null); // null | { mode:'add'|'edit', data }
-  const [form, setForm]         = useState(EMPTY);
-  const [saving, setSaving]     = useState(false);
+  const [allVendors, setAllVendors] = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [modal, setModal]           = useState(null);
+  const [form, setForm]             = useState(EMPTY);
+  const [saving, setSaving]         = useState(false);
+  const [search, setSearch]         = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'inactive'
 
   const load = () => {
     setLoading(true);
-    api.get('/vendors').then(r => setVendors(r.data.data)).catch(() => {}).finally(() => setLoading(false));
+    // Fetch all vendors (active + inactive)
+    api.get('/vendors').then(r => setAllVendors(r.data.data || [])).catch(() => {}).finally(() => setLoading(false));
   };
   useEffect(load, []);
 
   const openAdd  = () => { setForm(EMPTY); setModal({ mode: 'add' }); };
-  const openEdit = (v, e) => { e.stopPropagation(); setForm({ ...EMPTY, ...v, bankDetails: { ...EMPTY.bankDetails, ...(v.bankDetails || {}) } }); setModal({ mode: 'edit', id: v._id }); };
+  const openEdit = (v, e) => {
+    e.stopPropagation();
+    setForm({ ...EMPTY, ...v, bankDetails: { ...EMPTY.bankDetails, ...(v.bankDetails || {}) } });
+    setModal({ mode: 'edit', id: v._id });
+  };
 
-  const setField = (field, val) => setForm(f => ({ ...f, [field]: val }));
+  const setField    = (field, val) => setForm(f => ({ ...f, [field]: val }));
   const setBankField = (field, val) => setForm(f => ({ ...f, bankDetails: { ...f.bankDetails, [field]: val } }));
 
   const save = async () => {
@@ -62,22 +69,47 @@ export default function Vendors() {
     try {
       if (v.isActive) {
         await api.delete(`/vendors/${v._id}`);
-        toast.success('Vendor deactivated');
+        toast.success(`${v.companyName} deactivated`);
       } else {
         await api.put(`/vendors/${v._id}`, { isActive: true });
-        toast.success('Vendor activated');
+        toast.success(`${v.companyName} activated`);
       }
       load();
-    } catch { toast.error('Failed to update vendor'); }
+    } catch { toast.error('Failed to update vendor status'); }
   };
+
+  // Client-side filtering
+  const vendors = useMemo(() => {
+    let list = allVendors;
+    if (statusFilter === 'active')   list = list.filter(v => v.isActive);
+    if (statusFilter === 'inactive') list = list.filter(v => !v.isActive);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(v =>
+        v.companyName?.toLowerCase().includes(q) ||
+        v.email?.toLowerCase().includes(q) ||
+        v.contactPerson?.toLowerCase().includes(q) ||
+        v.phone?.includes(q)
+      );
+    }
+    return list;
+  }, [allVendors, statusFilter, search]);
+
+  const activeCount   = allVendors.filter(v =>  v.isActive).length;
+  const inactiveCount = allVendors.filter(v => !v.isActive).length;
 
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--t1)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Building2 size={20} color="var(--primary)" /> Vendors
-        </h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--t1)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Building2 size={20} color="var(--primary)" /> Vendors
+          </h1>
+          <p style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>
+            {activeCount} active · {inactiveCount} inactive
+          </p>
+        </div>
         <button onClick={openAdd} style={{
           display: 'flex', alignItems: 'center', gap: 6, background: 'var(--primary)', color: '#fff',
           border: 'none', borderRadius: 'var(--r)', padding: '8px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 600,
@@ -86,12 +118,35 @@ export default function Vendors() {
         </button>
       </div>
 
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Search */}
+        <div style={{ position: 'relative', flex: '1', minWidth: 200, maxWidth: 320 }}>
+          <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--t4)' }} />
+          <input
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name, email, phone…"
+            style={{ ...inputStyle, paddingLeft: 30, padding: '7px 12px 7px 30px' }}
+          />
+        </div>
+
+        {/* Status filter */}
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+          style={{ padding: '7px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, background: 'var(--white)', color: 'var(--t1)' }}>
+          <option value="all">All Status</option>
+          <option value="active">Active only</option>
+          <option value="inactive">Inactive only</option>
+        </select>
+      </div>
+
       {/* Table */}
       <div style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--t3)' }}>Loading vendors...</div>
         ) : vendors.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>No vendors yet. Add your first vendor.</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>
+            {allVendors.length === 0 ? 'No vendors yet. Add your first vendor.' : 'No vendors match your filters.'}
+          </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -103,13 +158,22 @@ export default function Vendors() {
             </thead>
             <tbody>
               {vendors.map((v, i) => (
-                <tr key={v._id} onClick={() => navigate(`/vendors/${v._id}`)}
-                  style={{ borderBottom: i < vendors.length - 1 ? '1px solid var(--border-light)' : 'none', cursor: 'pointer' }}
+                <tr key={v._id}
+                  onClick={() => navigate(`/vendors/${v._id}`)}
+                  style={{
+                    borderBottom: i < vendors.length - 1 ? '1px solid var(--border-light)' : 'none',
+                    cursor: 'pointer',
+                    opacity: v.isActive ? 1 : 0.55,
+                  }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
                   onMouseLeave={e => e.currentTarget.style.background = ''}>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1)' }}>{v.companyName}</div>
-                    {v.address && <div style={{ fontSize: 11, color: 'var(--t3)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}><MapPin size={10} />{v.address}</div>}
+                    {v.address && (
+                      <div style={{ fontSize: 11, color: 'var(--t3)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                        <MapPin size={10} />{v.address}
+                      </div>
+                    )}
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--t2)' }}>{v.contactPerson}</td>
                   <td style={{ padding: '12px 16px' }}>
@@ -121,16 +185,21 @@ export default function Vendors() {
                     <span style={{
                       padding: '2px 10px', borderRadius: 'var(--r-full)', fontSize: 11, fontWeight: 600,
                       background: v.isActive ? 'var(--success-bg)' : 'var(--bg)',
-                      color: v.isActive ? 'var(--success)' : 'var(--t3)',
+                      color:      v.isActive ? 'var(--success)'    : 'var(--t3)',
                     }}>{v.isActive ? 'Active' : 'Inactive'}</span>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={e => openEdit(v, e)} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: 'var(--t2)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <button onClick={e => openEdit(v, e)}
+                        title="Edit vendor details"
+                        style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: 'var(--t2)', display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Edit2 size={11} /> Edit
                       </button>
-                      <button onClick={e => toggle(v, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: v.isActive ? 'var(--success)' : 'var(--t3)', padding: 4 }}>
-                        {v.isActive ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                      <button
+                        onClick={e => toggle(v, e)}
+                        title={v.isActive ? 'Deactivate vendor (they will still appear in records)' : 'Reactivate vendor'}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: v.isActive ? 'var(--success)' : 'var(--t4)', padding: 4, display: 'flex', alignItems: 'center' }}>
+                        {v.isActive ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
                       </button>
                     </div>
                   </td>
@@ -141,7 +210,7 @@ export default function Vendors() {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Add / Edit Modal */}
       {modal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', padding: 28, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
@@ -151,13 +220,13 @@ export default function Vendors() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               {[
-                { label: 'Company Name *', field: 'companyName', span: 2 },
+                { label: 'Company Name *',  field: 'companyName',  span: 2 },
                 { label: 'Contact Person *', field: 'contactPerson' },
-                { label: 'Phone', field: 'phone' },
-                { label: 'Email', field: 'email' },
-                { label: 'GST Number', field: 'gstNumber' },
-                { label: 'Aadhaar Number', field: 'aadharNumber' },
-                { label: 'Address', field: 'address', span: 2 },
+                { label: 'Phone',           field: 'phone' },
+                { label: 'Email',           field: 'email' },
+                { label: 'GST Number',      field: 'gstNumber' },
+                { label: 'Aadhaar (last 4)', field: 'aadharNumber' },
+                { label: 'Address',         field: 'address', span: 2 },
               ].map(({ label, field, span }) => (
                 <div key={field} style={{ gridColumn: span ? `span ${span}` : undefined }}>
                   <label style={labelStyle}>{label}</label>
@@ -167,13 +236,13 @@ export default function Vendors() {
             </div>
 
             <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', marginBottom: 12 }}>Bank Details</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', marginBottom: 12 }}>Bank Details (for payment)</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 {[
                   { label: 'Account Holder Name', field: 'accountHolderName' },
-                  { label: 'Bank Name', field: 'bankName' },
-                  { label: 'Account Number', field: 'accountNumber' },
-                  { label: 'IFSC Code', field: 'ifscCode' },
+                  { label: 'Bank Name',           field: 'bankName' },
+                  { label: 'Account Number',      field: 'accountNumber' },
+                  { label: 'IFSC Code',           field: 'ifscCode' },
                 ].map(({ label, field }) => (
                   <div key={field}>
                     <label style={labelStyle}>{label}</label>
