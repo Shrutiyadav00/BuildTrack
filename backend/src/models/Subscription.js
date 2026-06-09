@@ -2,7 +2,11 @@ const mongoose = require('mongoose');
 
 // Plan durations in days (source of truth — not stored in DB)
 const PLAN_DURATIONS = {
-  trial:    30,
+  trial:        7,
+  starter:      30,
+  professional: 60,
+  business:     90,
+  // legacy names kept for backward-compat
   basic:    90,
   standard: 180,
   premium:  365,
@@ -14,7 +18,7 @@ const SubscriptionSchema = new mongoose.Schema({
 
   plan: {
     type: String,
-    enum: ['trial', 'basic', 'standard', 'premium'],
+    enum: ['trial', 'starter', 'professional', 'business', 'basic', 'standard', 'premium'],
     required: true,
   },
 

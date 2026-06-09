@@ -12,7 +12,6 @@ import ProjectDetail from './pages/projects/ProjectDetail';
 import Workers from './pages/workers/Workers';
 import Attendance from './pages/workers/Attendance';
 import Finance from './pages/finance/Finance';
-import Documents from './pages/documents/Documents';
 import Team from './pages/team/Team';
 import WorkerDashboard from './pages/worker/WorkerDashboard';
 import Subscription    from './pages/subscription/Subscription';
@@ -28,6 +27,7 @@ import PurchaseOrders   from './pages/vendors/PurchaseOrders';
 import PurchaseOrderForm from './pages/vendors/PurchaseOrderForm';
 import Reports          from './pages/reports/Reports';
 import Notifications    from './pages/notifications/Notifications';
+import Agreements       from './pages/agreements/Agreements';
 
 /* Redirects unauthenticated users to login */
 const PrivateRoute = ({ children }) => {
@@ -107,8 +107,6 @@ export default function App() {
                   <Route path="/projects/:id" element={<ProjectDetail />} />
                   <Route path="/workers"      element={<Workers />} />
                   <Route path="/attendance"   element={<Attendance />} />
-                  <Route path="/documents"    element={<Documents />} />
-
                   {/* Admin-only routes */}
                   <Route path="/finance"               element={<AdminOnlyRoute><Finance /></AdminOnlyRoute>} />
                   <Route path="/team"                  element={<AdminOnlyRoute><Team /></AdminOnlyRoute>} />
@@ -117,7 +115,9 @@ export default function App() {
                   <Route path="/vendors/:id"           element={<AdminOnlyRoute><VendorDetail /></AdminOnlyRoute>} />
                   <Route path="/purchase-orders"       element={<AdminOnlyRoute><PurchaseOrders /></AdminOnlyRoute>} />
                   <Route path="/purchase-orders/new"   element={<AdminOnlyRoute><PurchaseOrderForm /></AdminOnlyRoute>} />
+                  <Route path="/purchase-orders/:id/edit" element={<AdminOnlyRoute><PurchaseOrderForm /></AdminOnlyRoute>} />
                   <Route path="/reports"               element={<AdminOnlyRoute><Reports /></AdminOnlyRoute>} />
+                  <Route path="/agreements"            element={<AdminOnlyRoute><Agreements /></AdminOnlyRoute>} />
                   <Route path="/notifications"         element={<Notifications />} />
                 </Routes>
               </Layout>

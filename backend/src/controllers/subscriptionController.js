@@ -6,31 +6,67 @@ const { getOrgId } = require('../middleware/auth');
 const PLAN_META = {
   trial: {
     name:        'Free Trial',
-    duration:    30,
+    duration:    7,
     price:       0,
-    description: 'Full access for 30 days. One-time only.',
-    features:    ['All modules', 'Up to 5 projects', 'Up to 10 workers', 'Email support'],
+    description: '7 days free. Full access — 1 project only. One-time.',
+    features:    [
+      'All modules & features',
+      '1 project',
+      'Unlimited team members',
+      'Vendors & Purchase Orders',
+      'Finance & Reports',
+      'Site Diary & Inventory',
+    ],
+    maxProjects: 1,
+    highlight:   false,
   },
-  basic: {
-    name:        'Basic',
+  starter: {
+    name:        'Starter',
+    duration:    30,
+    price:       500,
+    description: '30 days — perfect for small projects.',
+    features:    [
+      'All modules & features',
+      'Up to 2 projects',
+      'Unlimited team members',
+      'Vendors & Purchase Orders',
+      'Finance & Reports',
+      'Site Diary & Inventory',
+    ],
+    maxProjects: 2,
+    highlight:   false,
+  },
+  professional: {
+    name:        'Professional',
+    duration:    60,
+    price:       1200,
+    description: '60 days — best for growing firms.',
+    features:    [
+      'All modules & features',
+      'Up to 5 projects',
+      'Unlimited team members',
+      'Vendors & Purchase Orders',
+      'Finance & Reports',
+      'Priority support',
+    ],
+    maxProjects: 5,
+    highlight:   true,
+  },
+  business: {
+    name:        'Business',
     duration:    90,
-    price:       2999,
-    description: '3 months of full access.',
-    features:    ['All modules', 'Up to 10 projects', 'Up to 30 workers', 'Email support'],
-  },
-  standard: {
-    name:        'Standard',
-    duration:    180,
-    price:       4999,
-    description: '6 months — best for active projects.',
-    features:    ['All modules', 'Unlimited projects', 'Unlimited workers', 'Priority support'],
-  },
-  premium: {
-    name:        'Premium',
-    duration:    365,
-    price:       7999,
-    description: '12 months — best value.',
-    features:    ['All modules', 'Unlimited everything', 'Dedicated support', 'Custom reports'],
+    price:       2000,
+    description: '90 days — for established contractors.',
+    features:    [
+      'All modules & features',
+      'Unlimited projects',
+      'Unlimited team members',
+      'Vendors & Purchase Orders',
+      'Dedicated support',
+      'Custom reports',
+    ],
+    maxProjects: -1,
+    highlight:   false,
   },
 };
 
@@ -121,10 +157,11 @@ exports.activateTrial = async (req, res) => {
 exports.upgrade = async (req, res) => {
   const { plan, paymentRef } = req.body;
 
-  if (!['basic', 'standard', 'premium'].includes(plan)) {
+  const paidPlans = ['starter', 'professional', 'business', 'basic', 'standard', 'premium'];
+  if (!paidPlans.includes(plan)) {
     return res.status(400).json({
       success: false,
-      message: 'Invalid plan. Choose basic, standard, or premium.',
+      message: 'Invalid plan. Choose starter, professional, or business.',
     });
   }
 
