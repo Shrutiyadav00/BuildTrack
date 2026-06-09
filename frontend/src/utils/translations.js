@@ -23,9 +23,9 @@ const T = {
     /* nav */
     dashboard:'Dashboard', projects:'Projects', workers:'Workers',
     attendance:'Attendance', finance:'Finance', documents:'Documents',
-    team:'Team', settings:'Settings', mainMenu:'Main Menu', management:'Management',
+    team:'Users & Roles', settings:'Settings', mainMenu:'Main Menu', management:'Management',
     subscription:'Subscription', vendors:'Vendors', purchaseOrders:'Purchase Orders',
-    reports:'Reports', notifications:'Notifications',
+    reports:'Reports', notifications:'Notifications', agreements:'Documents',
     /* actions */
     add:'Add', save:'Save', cancel:'Cancel', create:'Create', upload:'Upload',
     remove:'Remove', logout:'Logout', loading:'Loading', back:'Back',
@@ -172,7 +172,7 @@ const T = {
   de: {
     dashboard:'Dashboard', projects:'Projekte', workers:'Arbeiter',
     attendance:'Anwesenheit', finance:'Finanzen', documents:'Dokumente',
-    team:'Team', settings:'Einstellungen', mainMenu:'Hauptmenü', management:'Verwaltung',
+    team:'Users & Roles', settings:'Einstellungen', mainMenu:'Hauptmenü', management:'Verwaltung',
     add:'Hinzufügen', save:'Speichern', cancel:'Abbrechen', create:'Erstellen', upload:'Hochladen',
     remove:'Entfernen', logout:'Abmelden', loading:'Laden', back:'Zurück',
     name:'Name', phone:'Telefon', email:'E-Mail', password:'Passwort',

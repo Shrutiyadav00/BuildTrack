@@ -6,9 +6,9 @@ import SubscriptionBanner from '../subscription/SubscriptionBanner';
 import NotificationBell from '../notifications/NotificationBell';
 import {
   LayoutDashboard, FolderKanban, HardHat,
-  CalendarCheck, Wallet, FolderOpen, Users2, LogOut,
+  CalendarCheck, Wallet, Users2, LogOut,
   Settings, X, Menu, Globe, ChevronDown, CreditCard,
-  Package, FileText, BarChart2,
+  Package, FileText, BarChart2, ScrollText,
 } from 'lucide-react';
 
 const ADMIN = ['super_admin', 'admin', 'owner'];
@@ -27,7 +27,7 @@ const NAV_ITEMS = [
   { to:'/vendors',         icon:Package,       key:'vendors',         roles:ADMIN },
   { to:'/purchase-orders', icon:FileText,      key:'purchaseOrders',  roles:ADMIN },
   { to:'/reports',         icon:BarChart2,     key:'reports',         roles:ADMIN },
-  { to:'/documents',       icon:FolderOpen,    key:'documents',       roles:'all' },
+  { to:'/agreements',      icon:ScrollText,    key:'agreements',      roles:ADMIN },
   { to:'/team',            icon:Users2,        key:'team',            roles:ADMIN },
   { to:'/subscription',    icon:CreditCard,    key:'subscription',    roles:ADMIN },
 ];

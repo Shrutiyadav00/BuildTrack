@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Plus, CheckSquare, Wallet, FileText, LayoutDashboard, ArrowLeft, ClipboardList, Package, BookOpen } from 'lucide-react';
+import { Plus, CheckSquare, Wallet, FileText, LayoutDashboard, ArrowLeft, ClipboardList, Package, BookOpen, Upload, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 import { useSettings } from '../../context/SettingsContext';
 import SiteDiary from './SiteDiary';
 import Inventory from './Inventory';
+import Paginator from '../../components/Paginator';
 
-const STATUS_BADGE = { active:'badge-green', planning:'badge-yellow', on_hold:'badge-red', completed:'badge-blue', cancelled:'badge-gray' };
-const TYPE_COLORS  = { residential:'badge-purple', commercial:'badge-blue', industrial:'badge-orange', infrastructure:'badge-teal' };
+const STATUS_BADGE   = { active:'badge-green', planning:'badge-yellow', on_hold:'badge-red', completed:'badge-blue', cancelled:'badge-gray' };
+const TYPE_COLORS    = { residential:'badge-purple', commercial:'badge-blue', industrial:'badge-orange', infrastructure:'badge-teal' };
 const PRIORITY_BADGE = { low:'badge-gray', medium:'badge-blue', high:'badge-yellow', critical:'badge-red' };
+const DOC_CAT_BADGE  = { drawing:'badge-blue', layout:'badge-teal', structural:'badge-orange', mep:'badge-purple', boq:'badge-yellow', contract:'badge-red', permit:'badge-green', photo:'badge-gray', inspection:'badge-blue', other:'badge-gray' };
+const DOC_CATS       = ['drawing','layout','structural','mep','boq','contract','permit','photo','inspection','other'];
+const FILE_BASE      = (process.env.REACT_APP_API_URL || '').replace('/api', '');
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -24,6 +28,20 @@ export default function ProjectDetail() {
   const [taskForm, setTaskForm]  = useState({ title:'', priority:'medium', dueDate:'', description:'' });
   const [poSummary, setPoSummary] = useState(null);
   const { t, fmt, fmtShort }     = useSettings();
+
+  // Pagination state for each table
+  const [taskPage,     setTaskPage]     = useState(1);
+  const [taskPageSize, setTaskPageSize] = useState(10);
+  const [txPage,       setTxPage]       = useState(1);
+  const [txPageSize,   setTxPageSize]   = useState(10);
+  const [docPage,      setDocPage]      = useState(1);
+  const [docPageSize,  setDocPageSize]  = useState(10);
+
+  // Document upload state
+  const [showDocModal, setShowDocModal] = useState(false);
+  const [docForm,      setDocForm]      = useState({ name:'', category:'other', notes:'' });
+  const [docFile,      setDocFile]      = useState(null);
+  const [docUploading, setDocUploading] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -61,6 +79,36 @@ export default function ProjectDetail() {
   };
 
   const setTF = (f) => (e) => setTaskForm({ ...taskForm, [f]: e.target.value });
+
+  const uploadDoc = async (e) => {
+    e.preventDefault();
+    if (!docForm.name.trim()) return toast.error('Document name is required');
+    setDocUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('name', docForm.name);
+      fd.append('category', docForm.category);
+      if (docForm.notes) fd.append('notes', docForm.notes);
+      if (docFile) fd.append('file', docFile);
+      await api.post(`/documents/${id}`, fd, { headers:{ 'Content-Type':'multipart/form-data' } });
+      toast.success('Document uploaded');
+      setShowDocModal(false);
+      setDocForm({ name:'', category:'other', notes:'' });
+      setDocFile(null);
+      setDocPage(1);
+      const res = await api.get(`/documents/${id}`);
+      setDocs(res.data.data);
+    } catch { toast.error('Upload failed'); }
+    finally { setDocUploading(false); }
+  };
+
+  const toggleDocShare = async (docId, current) => {
+    try {
+      await api.put(`/documents/${docId}/share`, { sharedWithClient: !current });
+      setDocs(prev => prev.map(d => d._id === docId ? { ...d, sharedWithClient: !current } : d));
+      toast.success(!current ? 'Shared with client' : 'Set to private');
+    } catch { toast.error('Failed to update visibility'); }
+  };
 
   if (loading) return <div className="loading"><div className="spinner" /><span className="loading-text">{t('loading')}…</span></div>;
   if (!project) return <div className="loading">Project not found</div>;
@@ -205,7 +253,7 @@ export default function ProjectDetail() {
                         <div className="empty-title">No tasks yet</div>
                       </div>
                     </td></tr>
-                  ) : tasks.map(tk => (
+                  ) : tasks.slice((taskPage-1)*taskPageSize, taskPage*taskPageSize).map(tk => (
                     <tr key={tk._id}>
                       <td style={{ fontWeight:600 }}>{tk.title}</td>
                       <td><span className={`badge ${PRIORITY_BADGE[tk.priority]||'badge-gray'}`}>{tk.priority}</span></td>
@@ -216,6 +264,7 @@ export default function ProjectDetail() {
                 </tbody>
               </table>
             </div>
+            <Paginator page={taskPage} total={tasks.length} pageSize={taskPageSize} onPageChange={setTaskPage} onPageSizeChange={setTaskPageSize} />
           </div>
           {showTaskModal && (
             <div className="modal-overlay" onClick={() => setShowTaskModal(false)}>
@@ -279,7 +328,7 @@ export default function ProjectDetail() {
                 <tbody>
                   {transactions.length === 0 ? (
                     <tr><td colSpan={5}><div className="empty-state"><div className="empty-icon">💳</div><div className="empty-title">No transactions</div></div></td></tr>
-                  ) : transactions.map(tx => (
+                  ) : transactions.slice((txPage-1)*txPageSize, txPage*txPageSize).map(tx => (
                     <tr key={tx._id}>
                       <td style={{ fontWeight:600 }}>{tx.description}</td>
                       <td><span className="badge badge-gray">{tx.type?.replace(/_/g,' ')}</span></td>
@@ -291,29 +340,134 @@ export default function ProjectDetail() {
                 </tbody>
               </table>
             </div>
+            <Paginator page={txPage} total={transactions.length} pageSize={txPageSize} onPageChange={setTxPage} onPageSizeChange={setTxPageSize} />
           </div>
         </div>
       )}
 
       {tab === 'documents' && (
-        <div className="card">
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>{t('name')}</th><th>Category</th><th>Versions</th><th>Visibility</th></tr></thead>
-              <tbody>
-                {documents.length === 0 ? (
-                  <tr><td colSpan={4}><div className="empty-state"><div className="empty-icon"><FileText size={28} /></div><div className="empty-title">No documents</div></div></td></tr>
-                ) : documents.map(d => (
-                  <tr key={d._id}>
-                    <td style={{ fontWeight:600 }}>{d.name}</td>
-                    <td><span className="badge badge-blue">{d.category}</span></td>
-                    <td>{d.versions?.length ?? 0}</td>
-                    <td>{d.sharedWithClient ? <span className="badge badge-green">Client</span> : <span className="badge badge-gray">Private</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div>
+          {/* Toolbar */}
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, flexWrap:'wrap', gap:10 }}>
+            <div style={{ fontSize:13, color:'var(--t3)' }}>
+              {documents.length} file{documents.length !== 1 ? 's' : ''} — drawings, contracts, permits &amp; photos
+            </div>
+            <button className="btn btn-primary" onClick={() => setShowDocModal(true)}>
+              <Upload size={14} /> Upload File
+            </button>
           </div>
+
+          <div className="card">
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>{t('name')}</th>
+                    <th>Category</th>
+                    <th>Versions</th>
+                    <th>Open</th>
+                    <th>Client Visibility</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {documents.length === 0 ? (
+                    <tr><td colSpan={5}>
+                      <div className="empty-state">
+                        <div className="empty-icon"><FileText size={28} /></div>
+                        <div className="empty-title">No files yet</div>
+                        <div className="empty-desc">Upload drawings, contracts, BOQs, permits and photos</div>
+                      </div>
+                    </td></tr>
+                  ) : documents.slice((docPage-1)*docPageSize, docPage*docPageSize).map(d => {
+                    const activeVer = d.versions?.[( d.activeVersion ?? 1) - 1] || d.versions?.[0];
+                    const fileUrl   = activeVer?.fileUrl ? `${FILE_BASE}${activeVer.fileUrl}` : null;
+                    return (
+                      <tr key={d._id}>
+                        <td>
+                          <div style={{ fontWeight:600 }}>{d.name}</div>
+                          {activeVer?.notes && <div style={{ fontSize:11.5, color:'var(--t3)', marginTop:2 }}>{activeVer.notes}</div>}
+                        </td>
+                        <td>
+                          <span className={`badge ${DOC_CAT_BADGE[d.category]||'badge-gray'}`}>{d.category}</span>
+                        </td>
+                        <td style={{ color:'var(--t2)', fontWeight:600 }}>
+                          {d.versions?.length ?? 0}
+                          <span style={{ color:'var(--t4)', fontWeight:400, fontSize:11.5, marginLeft:4 }}>v{d.activeVersion ?? 1}</span>
+                        </td>
+                        <td>
+                          {fileUrl ? (
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer"
+                              style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:12.5, color:'var(--primary)', fontWeight:600, textDecoration:'none' }}>
+                              <ExternalLink size={12} /> Open
+                            </a>
+                          ) : <span style={{ color:'var(--t4)', fontSize:12 }}>—</span>}
+                        </td>
+                        <td>
+                          <button onClick={() => toggleDocShare(d._id, d.sharedWithClient)}
+                            title={d.sharedWithClient ? 'Click to make private' : 'Click to share with client'}
+                            style={{ background:'none', border:'none', cursor:'pointer', padding:0 }}>
+                            {d.sharedWithClient
+                              ? <span className="badge badge-green" style={{ display:'inline-flex', alignItems:'center', gap:4 }}><Eye size={11}/> Shared</span>
+                              : <span className="badge badge-gray"  style={{ display:'inline-flex', alignItems:'center', gap:4 }}><EyeOff size={11}/> Private</span>}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Paginator page={docPage} total={documents.length} pageSize={docPageSize} onPageChange={setDocPage} onPageSizeChange={setDocPageSize} />
+          </div>
+
+          {/* Upload modal */}
+          {showDocModal && (
+            <div className="modal-overlay" onClick={() => setShowDocModal(false)}>
+              <div className="modal" onClick={e => e.stopPropagation()}>
+                <div className="modal-head">
+                  <h2>Upload Document</h2>
+                  <button className="modal-close" onClick={() => setShowDocModal(false)}>×</button>
+                </div>
+                <div className="modal-body">
+                  <form id="doc-upload-form" onSubmit={uploadDoc}>
+                    <div className="form-group">
+                      <label className="form-label">Document Name *</label>
+                      <input className="form-input" value={docForm.name}
+                        onChange={e => setDocForm(f => ({ ...f, name:e.target.value }))}
+                        required placeholder="e.g. Ground Floor Layout Plan" />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Category</label>
+                      <select className="form-input" value={docForm.category}
+                        onChange={e => setDocForm(f => ({ ...f, category:e.target.value }))}>
+                        {DOC_CATS.map(c => (
+                          <option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">File</label>
+                      <input className="form-input" type="file"
+                        onChange={e => setDocFile(e.target.files[0])}
+                        style={{ paddingTop:6, paddingBottom:6 }} />
+                    </div>
+                    <div className="form-group mb-0">
+                      <label className="form-label">Notes <span style={{ fontWeight:400, color:'var(--t4)' }}>(optional)</span></label>
+                      <textarea className="form-input" rows={2} value={docForm.notes}
+                        onChange={e => setDocForm(f => ({ ...f, notes:e.target.value }))}
+                        placeholder="Version notes or description…" />
+                    </div>
+                  </form>
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-outline" onClick={() => setShowDocModal(false)}>Cancel</button>
+                  <button className="btn btn-primary" type="submit" form="doc-upload-form" disabled={docUploading}>
+                    <Upload size={14} /> {docUploading ? 'Uploading…' : 'Upload'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
